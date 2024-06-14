@@ -3,70 +3,128 @@
 #include <stdlib.h>
 #include <string.h>
 
+
 typedef struct Node {
-    char value[32];
+    char op;
     struct Node* left;
     struct Node* right;
 } Node;
 
 
-Node* parseExpression(char* expr) {
-    Node* node = malloc(sizeof(Node));
-    strcpy(node->value, expr);
-    node->left = NULL;
-    node->right = NULL;
-    return node;
+char* readExpression() {
+    char buffer[1024];
+    printf("Введите выражение: ");
+    fgets(buffer, sizeof(buffer), stdin);
+    return buffer;
 }
 
-Node* convertToRPN(char* expr) {
-    return parseExpression(expr);
-}
 
-Node* buildExpressionTree(char* rpn) {
-    return convertToRPN(rpn);
-}
-
-void simplifyTree(Node* root) {
-    if (!root) return;
-    if (strcmp(root->value, "/") == 0 && root->right && strcmp(root->right->value, "/") == 0) {
-        strcpy(root->value, "*");
-        root->right = root->right->right;
+char* reversePolishNotation(char* expr) {
+    char* result = (char*)malloc(strlen(expr) * sizeof(char));
+    int i = 0, j = 0;
+    for (; i < strlen(expr); i++) {
+        if (expr[i] == '(') {
+            result[j++] = '(';
+        }
+        else if (expr[i] == ')') {
+            result[j++] = ')';
+        }
+        else if (expr[i] == '+' || expr[i] == '-' || expr[i] == '*' || expr[i] == '/') {
+            while (j > 0 && result[j - 1] != '(') {
+                result[j++] = result[--j];
+            }
+            result[j++] = expr[i];
+        }
+        else {
+            result[j++] = expr[i];
+        }
     }
-    simplifyTree(root->left);
-    simplifyTree(root->right);
+    result[j] = '\0';
+    return result;
 }
 
-void traverseTree(Node* root, char* result) {
-    if (!root) return;
-    if (root->left) {
-        traverseTree(root->left, result);
+
+Node* createTree(char* exprNotation) {
+    Node* root = NULL;
+    for (int i = 0; i < strlen(exprNotation); i++) {
+        if (exprNotation[i] == '(') {
+            Node* node = (Node*)malloc(sizeof(Node));
+            node->op = exprNotation[++i];
+            node->left = createTree(&exprNotation[i]);
+            i++;
+            node->right = createTree(&exprNotation[i]);
+            if (root == NULL) {
+                root = node;
+            }
+            else {
+                Node* current = root;
+                while (current->right != NULL) {
+                    current = current->right;
+                }
+                current->right = node;
+            }
+        }
     }
-    strcat(result, root->value);
-    if (root->right) {
-        traverseTree(root->right, result);
+    return root;
+}
+
+
+void simplifyTree(Node* tree) {
+    if (tree == NULL) {
+        return;
+    }
+    if (tree->op == '+') {
+        if (tree->left->op == '+' || tree->right->op == '+') {
+            simplifyTree(tree->left);
+            simplifyTree(tree->right);
+        }
+    }
+    else if (tree->op == '-') {
+        if (tree->left->op == '-' || tree->right->op == '-') {
+            simplifyTree(tree->left);
+            simplifyTree(tree->right);
+        }
+    }
+    else if (tree->op == '*') {
+        if (tree->left->op == '*' || tree->right->op == '*') {
+            simplifyTree(tree->left);
+            simplifyTree(tree->right);
+        }
+    }
+    else if (tree->op == '/') {
+        if (tree->left->op == '/' || tree->right->op == '/') {
+            simplifyTree(tree->left);
+            simplifyTree(tree->right);
+        }
     }
 }
 
-void destroyTree(Node* root) {
-    if (!root) return;
-    destroyTree(root->left);
-    destroyTree(root->right);
-    free(root);
+
+char* buildExpression(Node* tree) {
+    char* result = (char*)malloc(1024 * sizeof(char));
+    if (tree == NULL) {
+        return result;
+    }
+    if (tree->left != NULL) {
+        strcat(result, buildExpression(tree->left));
+    }
+    strcat(result, " ");
+    strcat(result, &tree->op);
+    strcat(result, " ");
+    if (tree->right != NULL) {
+        strcat(result, buildExpression(tree->right));
+    }
+    return result;
 }
 
 int main() {
-    char expr[100];
-    printf("Enter the expression: ");
-    scanf("%99s", expr);
-
-    Node* tree = buildExpressionTree(expr);
+    char* expr = readExpression();
+    char* exprNotation = reversePolishNotation(expr);
+    Node* tree = createTree(exprNotation);
     simplifyTree(tree);
-
-    char result[100] = { 0 };
-    traverseTree(tree, result);
-
-    printf("Simplified expression: %s\n", result);
-    destroyTree(tree);
-
+    char* res = buildExpression(tree);
+    printf("Результат: %s\n", res);
+    free(exprNotation);
+    free(res);
     return 0;
 }
