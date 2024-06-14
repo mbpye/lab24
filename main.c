@@ -30,7 +30,7 @@ void printInfix(Node* root) {
     if (root->right != NULL) printf(")");
 }
 
-// Функция для преобразования (a/b)/c в a/(b*c) и a/(b/c) в (a/b)*c
+
 Node* simplifyFraction(Node* root) {
     if (root == NULL) return NULL;
     if (strcmp(root->data, "/") == 0) {
@@ -40,12 +40,12 @@ Node* simplifyFraction(Node* root) {
             Node* b = root->left->right;
             Node* c = root->right;
 
-            // Создаем новое дерево для b*c
+            // дерево для b*c
             Node* newRight = createNode("*");
             newRight->left = b;
             newRight->right = c;
 
-            // Создаем новое дерево для a/(b*c)
+            // для a/(b*c)
             Node* newRoot = createNode("/");
             newRoot->left = a;
             newRoot->right = newRight;
@@ -58,12 +58,12 @@ Node* simplifyFraction(Node* root) {
             Node* b = root->right->left;
             Node* c = root->right->right;
 
-            // Создаем новое дерево для (a/b)
+            // для (a/b)
             Node* newLeft = createNode("/");
             newLeft->left = a;
             newLeft->right = b;
 
-            // Создаем новое дерево для (a/b)*c
+            // для (a/b)*c
             Node* newRoot = createNode("*");
             newRoot->left = newLeft;
             newRoot->right = c;
