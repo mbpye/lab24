@@ -4,14 +4,14 @@
 #include <string.h>
 #include <locale.h>
 
-// Структура для представления дерева выражений
+
 typedef struct Node {
     char data[10];
     struct Node* left;
     struct Node* right;
 } Node;
 
-// Функция для создания нового узла
+
 Node* createNode(char* data) {
     Node* node = (Node*)malloc(sizeof(Node));
     strcpy(node->data, data);
@@ -20,7 +20,7 @@ Node* createNode(char* data) {
     return node;
 }
 
-// Функция для печати выражения в инфиксной нотации
+
 void printInfix(Node* root) {
     if (root == NULL) return;
     if (root->left != NULL) printf("(");
@@ -35,17 +35,14 @@ Node* simplifyFraction(Node* root) {
     if (root == NULL) return NULL;
     if (strcmp(root->data, "/") == 0) {
         if (root->left && strcmp(root->left->data, "/") == 0) {
-            // (a/b)/c -> a/(b*c)
             Node* a = root->left->left;
             Node* b = root->left->right;
             Node* c = root->right;
 
-            // дерево для b*c
             Node* newRight = createNode("*");
             newRight->left = b;
             newRight->right = c;
 
-            // для a/(b*c)
             Node* newRoot = createNode("/");
             newRoot->left = a;
             newRoot->right = newRight;
@@ -53,17 +50,14 @@ Node* simplifyFraction(Node* root) {
             return newRoot;
         }
         if (root->right && strcmp(root->right->data, "/") == 0) {
-            // a/(b/c) -> (a/b)*c
             Node* a = root->left;
             Node* b = root->right->left;
             Node* c = root->right->right;
 
-            // для (a/b)
             Node* newLeft = createNode("/");
             newLeft->left = a;
             newLeft->right = b;
 
-            // для (a/b)*c
             Node* newRoot = createNode("*");
             newRoot->left = newLeft;
             newRoot->right = c;
