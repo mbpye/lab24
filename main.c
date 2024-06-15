@@ -2,129 +2,168 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
+#include <locale.h>
 
 
 typedef struct Node {
-    char op;
-    struct Node* left;
-    struct Node* right;
+    char operation; //(+, -, \*, /)
+    char variable; // Буквенный множитель
+    int power; // Степень буквенного множителя
+    struct Node* left; // Левый дочерний узел
+    struct Node* right; // Правый дочерний узел
 } Node;
 
 
-char* readExpression() {
-    char buffer[1024];
-    printf("Введите выражение: ");
-    fgets(buffer, sizeof(buffer), stdin);
-    return buffer;
+Node* createNode(char operation, char variable, int power) {
+    Node* newNode = (Node*)malloc(sizeof(Node));
+    newNode->operation = operation;
+    newNode->variable = variable;
+    newNode->power = power;
+    newNode->left = NULL;
+    newNode->right = NULL;
+    return newNode;
 }
 
 
-char* reversePolishNotation(char* expr) {
-    char* result = (char*)malloc(strlen(expr) * sizeof(char));
-    int i = 0, j = 0;
-    for (; i < strlen(expr); i++) {
-        if (expr[i] == '(') {
-            result[j++] = '(';
-        }
-        else if (expr[i] == ')') {
-            result[j++] = ')';
-        }
-        else if (expr[i] == '+' || expr[i] == '-' || expr[i] == '*' || expr[i] == '/') {
-            while (j > 0 && result[j - 1] != '(') {
-                result[j++] = result[--j];
-            }
-            result[j++] = expr[i];
-        }
-        else {
-            result[j++] = expr[i];
-        }
+Node* simplify(Node* node) {
+    if (node == NULL) {
+        return NULL;
     }
-    result[j] = '\0';
-    return result;
-}
 
 
-Node* createTree(char* exprNotation) {
-    Node* root = NULL;
-    for (int i = 0; i < strlen(exprNotation); i++) {
-        if (exprNotation[i] == '(') {
-            Node* node = (Node*)malloc(sizeof(Node));
-            node->op = exprNotation[++i];
-            node->left = createTree(&exprNotation[i]);
-            i++;
-            node->right = createTree(&exprNotation[i]);
-            if (root == NULL) {
-                root = node;
-            }
-            else {
-                Node* current = root;
-                while (current->right != NULL) {
-                    current = current->right;
+    if (node->operation == '/') {
+        if (node->left->operation == '/' && node->right->operation == '/') {
+            Node* left = simplify(node->left);
+            Node* right = simplify(node->right);
+            if (left->operation == '/' && right->operation == '/') {
+                if (left->variable == right->variable && left->power == right->power) {
+                    return createNode('/', left->variable, left->power - right->power);
                 }
-                current->right = node;
             }
         }
     }
-    return root;
+
+    if (node->operation == '*') {
+        if (node->left->operation == '*' && node->right->operation == '*') {
+            Node* left = simplify(node->left);
+            Node* right = simplify(node->right);
+            if (left->operation == '*' && right->operation == '*') {
+                if (left->variable == right->variable) {
+                    return createNode('*', left->variable, left->power + right->power);
+                }
+            }
+        }
+    }
+
+    return node;
 }
 
 
-void simplifyTree(Node* tree) {
-    if (tree == NULL) {
+void printExpression(Node* node) {
+    if (node == NULL) {
         return;
     }
-    if (tree->op == '+') {
-        if (tree->left->op == '+' || tree->right->op == '+') {
-            simplifyTree(tree->left);
-            simplifyTree(tree->right);
-        }
-    }
-    else if (tree->op == '-') {
-        if (tree->left->op == '-' || tree->right->op == '-') {
-            simplifyTree(tree->left);
-            simplifyTree(tree->right);
-        }
-    }
-    else if (tree->op == '*') {
-        if (tree->left->op == '*' || tree->right->op == '*') {
-            simplifyTree(tree->left);
-            simplifyTree(tree->right);
-        }
-    }
-    else if (tree->op == '/') {
-        if (tree->left->op == '/' || tree->right->op == '/') {
-            simplifyTree(tree->left);
-            simplifyTree(tree->right);
-        }
-    }
-}
 
-
-char* buildExpression(Node* tree) {
-    char* result = (char*)malloc(1024 * sizeof(char));
-    if (tree == NULL) {
-        return result;
+    if (node->operation == '+') {
+        printf("(");
+        printExpression(node->left);
+        printf(" + ");
+        printExpression(node->right);
+        printf(")");
     }
-    if (tree->left != NULL) {
-        strcat(result, buildExpression(tree->left));
+    else if (node->operation == '/') {
+        printf("(");
+        printExpression(node->left);
+        printf(" / ");
+        printExpression(node->right);
+        printf(")");
     }
-    strcat(result, " ");
-    strcat(result, &tree->op);
-    strcat(result, " ");
-    if (tree->right != NULL) {
-        strcat(result, buildExpression(tree->right));
+    else if (node->operation == '*') {
+        printExpression(node->left);
+        printf("*");
+        printExpression(node->right);
     }
-    return result;
+    else {
+        if (node->power == 1) {
+            printf("%c", node->variable);
+        }
+        else {
+            printf("%c^%d", node->variable, node->power);
+        }
+    }
 }
 
 int main() {
-    char* expr = readExpression();
-    char* exprNotation = reversePolishNotation(expr);
-    Node* tree = createTree(exprNotation);
-    simplifyTree(tree);
-    char* res = buildExpression(tree);
-    printf("Результат: %s\n", res);
-    free(exprNotation);
-    free(res);
+    setlocale(LC_ALL, "rus");
+    char expression[100];
+    printf("Введите многоэтажное дробное выражение с буквенными множителями (например, a/(b/c)): ");
+    fgets(expression, 100, stdin);
+    expression[strcspn(expression, "\n")] = '\0';
+
+
+    Node* root = NULL;
+    int i = 0;
+    while (expression[i] != '\0') {
+        if (isalpha(expression[i])) {
+            char variable = expression[i];
+            int power = 1;
+            if (expression[i + 1] == '^') {
+                i++;
+                power = 0;
+                while (isdigit(expression[++i])) {
+                    power = power * 10 + (expression[i] - '0');
+                }
+            }
+            if (root == NULL) {
+                root = createNode('*', variable, power);
+            }
+            else {
+                Node* newNode = createNode('*', variable, power);
+                newNode->left = root;
+                root = newNode;
+            }
+        }
+        else if (expression[i] == '/') {
+            Node* newNode = createNode('/', 0, 0);
+            newNode->left = root;
+            root = newNode;
+        }
+        else if (expression[i] == '(') {
+            int j = i;
+            int depth = 1;
+            while (depth > 0) {
+                j++;
+                if (expression[j] == '(') depth++;
+                else if (expression[j] == ')') depth--;
+            }
+            char subExpression[100];
+            strncpy(subExpression, expression + i + 1, j - i - 1);
+            subExpression[j - i - 1] = '\0';
+            Node* subRoot = main(subExpression);
+            if (root == NULL) {
+                root = subRoot;
+            }
+            else {
+                Node* newNode = createNode('/', 0, 0);
+                newNode->left = root;
+                newNode->right = subRoot;
+                root = newNode;
+            }
+            i = j;
+        }
+        i++;
+    }
+
+    Node* simplified = simplify(root);
+
+    printf("Исходное выражение: ");
+    printExpression(root);
+    printf("\n");
+
+    printf("Упрощенное выражение: ");
+    printExpression(simplified);
+    printf("\n");
+
     return 0;
 }
