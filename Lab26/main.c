@@ -1,70 +1,135 @@
 #define _CRT_SECURE_NO_WARNINGS
+#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef struct Node {
-    int value;
-    struct Node* next;
-} Node;
+#define MAX_SIZE 100
 
-Node* createNode(int value) {
-    Node* newNode = (Node*)malloc(sizeof(Node));
-    newNode->value = value;
-    newNode->next = NULL;
-    return newNode;
+//--------------------
+typedef struct {
+    int elements[MAX_SIZE];
+    int front;
+    int rear;
+} Deque;
+
+//-------------------------------------------------
+Deque* createDeque() {
+    Deque* newDeque = (Deque*)malloc(sizeof(Deque));
+    newDeque->front = -1;
+    newDeque->rear = -1;
+    return newDeque;
 }
 
-Node* mergeLists(Node* list1, Node* list2) {
-    if (list1 == NULL && list2 == NULL) {
-        return NULL;
+//--------------------------------------
+void push_back(Deque* deque, int value) {
+    if (deque->rear == MAX_SIZE - 1) {
+        printf("Deque is full\n");
+        return;
+    }
+    if (deque->front == -1) {
+        deque->front = 0;
+    }
+    deque->rear++;
+    deque->elements[deque->rear] = value;
+}
+
+//-------------------------------------
+void push_front(Deque* deque, int value) {
+    if (deque->front == 0) {
+        printf("Cannot insert at front\n");
+        return;
+    }
+    if (deque->front == -1) {
+        deque->front = 0;
+        deque->rear = 0;
+    }
+    else {
+        deque->front--;
+    }
+    deque->elements[deque->front] = value;
+}
+
+//-удаления  из конца дека---
+void pop_back(Deque* deque) {
+    if (deque->front == -1) {
+        printf("Deque is empty\n");
+        return;
+    }
+    if (deque->rear == deque->front) {
+        deque->front = -1;
+        deque->rear = -1;
+    }
+    else {
+        deque->rear--;
+    }
+}
+
+//----удаления из начала дека--
+void pop_front(Deque* deque) {
+    if (deque->front == -1) {
+        printf("Deque is empty\n");
+        return;
+    }
+    if (deque->front == deque->rear) {
+        deque->front = -1;
+        deque->rear = -1;
+    }
+    else {
+        deque->front++;
+    }
+}
+
+// ---слияния двух деков----------------------------
+Deque* mergeDeques(Deque* deque1, Deque* deque2) {
+    Deque* result = createDeque();
+    int i = deque1->front;
+    int j = deque2->front;
+
+    while (i <= deque1->rear && j <= deque2->rear) {
+        if (deque1->elements[i] <= deque2->elements[j]) {
+            push_back(result, deque1->elements[i]);
+            i++;
+        }
+        else {
+            push_back(result, deque2->elements[j]);
+            j++;
+        }
     }
 
-    if (list1 == NULL) {
-        return list2;
+    while (i <= deque1->rear) {
+        push_back(result, deque1->elements[i]);
+        i++;
     }
 
-    if (list2 == NULL) {
-        return list1;
+    while (j <= deque2->rear) {
+        push_back(result, deque2->elements[j]);
+        j++;
     }
 
-    if (list1->value < list2->value) {
-        list1->next = mergeLists(list1->next, list2);
-        return list1;
-    }
-
-    if (list2->value < list1->value) {
-        list2->next = mergeLists(list1, list2->next);
-        return list2;
-    }
-
-
-    Node* result = createNode(list1->value);
-    result->next = mergeLists(list1->next, list2);
     return result;
 }
 
+int main() {
+    setlocale(LC_ALL, "rus");
+    Deque* deque1 = createDeque();
+    Deque* deque2 = createDeque();
 
-void printList(Node* list) {
-    while (list != NULL) {
-        printf("%d ", list->value);
-        list = list->next;
+    push_back(deque1, 1);
+    push_back(deque1, 3);
+    push_back(deque1, 5);
+
+    push_back(deque2, 2);
+    push_back(deque2, 4);
+    push_back(deque2, 6);
+
+    Deque* mergedDeque = mergeDeques(deque1, deque2);
+
+    printf("Слияние деков:\n");
+    while (mergedDeque->front != -1) {
+        printf("%d ", mergedDeque->elements[mergedDeque->front]);
+        pop_front(mergedDeque);
     }
     printf("\n");
-}
-
-int main() {
-
-    Node* list1 = createNode(1);
-    list1->next = createNode(3);
-    list1->next->next = createNode(5);
-
-    Node* list2 = createNode(2);
-    list2->next = createNode(4);
-    list2->next->next = createNode(6);
-
-    Node* mergedList = mergeLists(list1, list2);
-
-    printList(mergedList);
 
     return 0;
 }
